@@ -15,6 +15,22 @@ namespace Library.Services
             this.dbContext = dbContext;
         }
 
+        public async Task AddBookAsynck(AddBookViewModel model)
+        {
+            Book book = new Book()
+            {
+                Title = model.Title,
+                Author = model.Author,
+                ImageUrl = model.Url,
+                Description = model.Description,
+                CategoryId = model.CategoryId,
+                Rating = decimal.Parse(model.Rating)
+            };
+
+            await dbContext.Books.AddAsync(book);
+            await dbContext.SaveChangesAsync();
+        }
+
         public async Task AddBookToCollectionAsync(string userId, BookViewModel book)
         {
             bool alreadyAdded = await dbContext.IdentityUserBook
@@ -51,8 +67,8 @@ namespace Library.Services
 
         public async Task<BookViewModel?> GetBookByIdAsync(int id)
         {
-            return await dbContext .Books
-                .Where(b  => b.Id == id)
+            return await dbContext.Books
+                .Where(b => b.Id == id)
                 .Select(b => new BookViewModel
                 {
                     Id = b.Id,
@@ -79,5 +95,36 @@ namespace Library.Services
                     Category = b.Book.Category.Name,
                 }).ToListAsync();
         }
+
+        public async Task<AddBookViewModel> GetNewAddBookModelAsync()
+        {
+            var categoris = await dbContext.Categories
+                .Select(c => new CategoryViewModel
+                {
+                    Id = c.Id,
+                    Name = c.Name,
+                }).ToListAsync();
+
+            var model = new AddBookViewModel
+            {
+                Categories = categoris
+            };
+            return model;
+
+        }
+
+        public async Task RemoveBookFromCollectionAsync(string userId, BookViewModel book)
+        {
+            var userBook = await dbContext.IdentityUserBook
+                    .FirstOrDefaultAsync(ub => ub.CollectorId == userId && ub.BookId == book.Id);
+
+            if (userBook != null)
+            {
+                dbContext.IdentityUserBook.Remove(userBook);
+                await dbContext.SaveChangesAsync();
+            }
+
+        }
     }
 }
+
